@@ -1,4 +1,4 @@
-#!/usr/bin/guile -s
+#!/nix/store/ck8pszqkvqz2b11cv0p8wgd1pjsnzlas-guile-3.0.11/bin/guile -s
 !#
 (use-modules (sxml simple)
              (ice-9 format)
@@ -176,7 +176,8 @@
       ("Texture2D" . "Texture")
       ("TextureCubemap" . "Texture")
       ("RenderTexture2D" . "RenderTexture")
-      ("Camera" . "Camera3D")))
+      ("Camera" . "Camera3D")
+      ("ModelAnimPose" . "Transform *")))
   (define entry (assoc type aliases))
   (if entry (cdr entry) type))
 
@@ -194,7 +195,7 @@
 
 (define (scm->c port type expr)
   (define stype (sanitize-type type))
-  (define dtype (sanitize-type (deptr-type type)))
+  (define dtype (deptr-type stype))
   (cond
    ((or (string= stype "char *") (string= stype "uchar *"))
     (let ((local (genlocal)))
@@ -207,12 +208,12 @@
     (format port "    scm_assert_foreign_object_type(rgtype_~a, ~a);\n" dtype expr)
     (format #f "scm_foreign_object_ref(~a, 0)" expr))
    ((string= stype "float") (format #f "scm_to_double(~a)" expr))
-   ((string-contains type "*") (format #f "scm_to_pointer(~a)" expr))
+   ((string-contains stype "*") (format #f "scm_to_pointer(~a)" expr))
    (else (format #f "scm_to_~a(~a)" stype expr))))
 
 (define (c->scm port type expr)
   (define stype (sanitize-type type))
-  (define dtype (sanitize-type (deptr-type type)))
+  (define dtype (deptr-type stype))
   (cond
    ((or (string= stype "char *") (string= stype "uchar *"))
     (format #f "scm_from_utf8_string(~a)" expr))
@@ -225,7 +226,7 @@
               stype local expr local local stype)
       (format #f "scm_make_foreign_object_1(rgtype_~a, ~a)" stype local)))
    ((string= stype "float") (format #f "scm_from_double(~a)" expr))
-   ((string-contains type "*") (format #f "scm_from_pointer(~a, NULL)" expr))
+   ((string-contains stype "*") (format #f "scm_from_pointer(~a, NULL)" expr))
    (else (format #f "scm_from_~a(~a)" stype expr))))
 
 (define (generate-function f port)

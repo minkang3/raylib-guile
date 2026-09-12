@@ -6,5 +6,6 @@ pkgs.mkShell {
     guile_3_0
     gcc
     wget
+    raylib
   ];
 }
